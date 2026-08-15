@@ -1,0 +1,2 @@
+n_areas,n_area_days,n_area_days_with_weather,date_min,date_max,missing_weather_share,n_hot30,n_hot32,n_hot35,share_hot30,share_hot32,share_hot35,mean_tmax_minus_lax,mean_abs_tmax_minus_lax
+21,107373,106964,2010-01-01,2023-12-31,0.003809151276391644,19394,11634,5132,0.18131333906734975,0.10876556598481732,0.047978759208705736,2.7711183201824916,3.0401714595564866

@@ -2,7 +2,9 @@
 
 Los Angeles temperature–crime–ENSO pilot analysis (Alliance / Fir HPC).
 
-This repository contains **code only**. Raw data, processed panels, and results are kept on Scratch and are not versioned.
+This repository contains analysis **code**, **SLURM job scripts**, and **results** (tables/figures). Raw downloads and large processed panels stay on Scratch (`$SCRATCH/la_crime_data`) and are not versioned.
+
+Licensed under the [MIT License](LICENSE).
 
 ## Setup
 
@@ -44,4 +46,5 @@ sbatch slurm/run_spatial.sbatch
 ## Notes
 
 - Preferred violent outcome uses the offense-code crosswalk (not keyword proxies).
-- Large inputs/outputs live under `$SCRATCH/la_crime_data` and local `results/` (gitignored).
+- Large inputs live under `$SCRATCH/la_crime_data` (gitignored). Analysis tables/figures are in `results/`.
+- Licensed under MIT.

@@ -1,6 +1,5 @@
-# Local / Scratch data and outputs
+# Local / Scratch data (raw & processed panels)
 data/
-results/
 *.out
 slurm-*.out
 slurm-spatial-*.out
