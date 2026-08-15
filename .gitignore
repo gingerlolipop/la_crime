@@ -1,0 +1,22 @@
+# Local / Scratch data and outputs
+data/
+results/
+*.out
+slurm-*.out
+slurm-spatial-*.out
+
+# Environments and caches
+__pycache__/
+*.pyc
+.venv/
+la_crime_env/
+
+# Drafts and non-code docs (keep repo code-only)
+RESEARCH_DRAFT_CN.md
+README_FIR.md
+setup.sh
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
