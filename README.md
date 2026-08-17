@@ -9,19 +9,21 @@ Licensed under the [MIT License](LICENSE).
 <!-- RESULTS-LINKS:START -->
 ## Latest results
 
-_Auto-updated on push. Snapshot commit `5ac3bc8` · 2026-08-17 08:02 UTC_
+_Auto-updated on push. Snapshot commit `8fcb929` · 2026-08-17 08:39 UTC_
 
 ### Findings reports
-- [MECHANISM FINDINGS](results/MECHANISM_FINDINGS.md)
+- [MECHANISM FINDINGS V2](results/MECHANISM_FINDINGS_V2.md)
 - [SPATIAL WEATHER FINDINGS](results/SPATIAL_WEATHER_FINDINGS.md)
 - [FULL SAMPLE FINDINGS](results/FULL_SAMPLE_FINDINGS.md)
 - [PILOT FINDINGS](results/PILOT_FINDINGS.md)
 - [RESULTS SUMMARY](results/RESULTS_SUMMARY.md)
 
 ### Key tables
-- [crime_type_temperature_bins.csv](results/crime_type_temperature_bins.csv)
-- [crime_type_hot_p95.csv](results/crime_type_hot_p95.csv)
-- [crime_mechanism_classification.csv](results/crime_mechanism_classification.csv)
+- [crime_mechanism_classification_v2.csv](results/crime_mechanism_classification_v2.csv)
+- [crime_type_temperature_bins_v2.csv](results/crime_type_temperature_bins_v2.csv)
+- [crime_type_heterogeneity_tests.csv](results/crime_type_heterogeneity_tests.csv)
+- [crime_type_hot_p95_clim.csv](results/crime_type_hot_p95_clim.csv)
+- [heat_threshold_definitions.csv](results/heat_threshold_definitions.csv)
 - [spatial_main_models.csv](results/spatial_main_models.csv)
 - [lax_vs_spatial.csv](results/lax_vs_spatial.csv)
 - [main_models.csv](results/main_models.csv)
@@ -31,8 +33,8 @@ _Auto-updated on push. Snapshot commit `5ac3bc8` · 2026-08-17 08:02 UTC_
 ### Figures
 - [fig10_spatial_crime_type_comparison.png](results/figures/fig10_spatial_crime_type_comparison.png)
 - [fig11_lax_vs_spatial.png](results/figures/fig11_lax_vs_spatial.png)
-- [fig12_crime_type_temperature_response.png](results/figures/fig12_crime_type_temperature_response.png)
-- [fig13_interpersonal_vs_property_heat.png](results/figures/fig13_interpersonal_vs_property_heat.png)
+- [fig12_crime_type_temperature_response_v2.png](results/figures/fig12_crime_type_temperature_response_v2.png)
+- [fig13_interpersonal_vs_opportunity_v2.png](results/figures/fig13_interpersonal_vs_opportunity_v2.png)
 - [fig1_temperature_crime.png](results/figures/fig1_temperature_crime.png)
 - [fig2_temperature_bins.png](results/figures/fig2_temperature_bins.png)
 - [fig3_extreme_heat.png](results/figures/fig3_extreme_heat.png)
