@@ -82,13 +82,16 @@ sbatch slurm/run_spatial.sbatch
 | `06_spatial_weather_download.py` | Multi-station NOAA weather |
 | `07_build_area_panel.py` | LAPD area × day panel |
 | `08_spatial_analysis.py` | Area + date FE spatial models |
-| `09_mechanism_analysis.py` | Crime-type temperature response curves |
+| `09_mechanism_analysis.py` | Crime-type response curves + heterogeneity tests |
 | `offense_codes.py` | Violent / property / mechanism Crm Cd crosswalk |
+| `update_readme_results.py` | Refresh the results links above (pre-push hook) |
 | `config.py` | Paths and sample windows |
 
 ## Notes
 
 - Preferred violent outcome uses the offense-code crosswalk (not keyword proxies).
+- Mechanism subcategories use the v2 taxonomy: vandalism and arson are separated from `theft`, burglary is split into structure vs vehicle, and vehicle theft is restricted to motor vehicles. The `violent` / `violent_ucr` / `property` aggregates are unchanged.
+- Curve shapes in `MECHANISM_FINDINGS_V2.md` are described by hand from the estimates; no automated shape classifier feeds the interpretation.
 - Large inputs live under `$SCRATCH/la_crime_data` (gitignored). Analysis tables/figures are in `results/`.
 - The **Latest results** section above is refreshed automatically on each `git push` (see `hooks/pre-push`).
 - Licensed under MIT.

@@ -1,0 +1,4 @@
+threshold,cutoff_c,basis,n_crime_period_days,share_crime_period
+hot35,35.0,absolute,26,0.005085077254058283
+hot_p95,28.9,P95 of TMAX in 2010-2023 crime sample,286,0.05593584979464111
+hot_p95_clim,28.3,"P95 of TMAX in 1991-2020 normals (10,958 station-days)",356,0.0696264424017211

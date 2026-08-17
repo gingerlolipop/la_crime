@@ -12,7 +12,7 @@ START = "<!-- RESULTS-LINKS:START -->"
 END = "<!-- RESULTS-LINKS:END -->"
 
 FINDINGS_NAMES = (
-    "MECHANISM_FINDINGS.md",
+    "MECHANISM_FINDINGS_V2.md",
     "SPATIAL_WEATHER_FINDINGS.md",
     "FULL_SAMPLE_FINDINGS.md",
     "PILOT_FINDINGS.md",
@@ -20,9 +20,11 @@ FINDINGS_NAMES = (
 )
 
 KEY_TABLES = (
-    "crime_type_temperature_bins.csv",
-    "crime_type_hot_p95.csv",
-    "crime_mechanism_classification.csv",
+    "crime_mechanism_classification_v2.csv",
+    "crime_type_temperature_bins_v2.csv",
+    "crime_type_heterogeneity_tests.csv",
+    "crime_type_hot_p95_clim.csv",
+    "heat_threshold_definitions.csv",
     "spatial_main_models.csv",
     "lax_vs_spatial.csv",
     "main_models.csv",

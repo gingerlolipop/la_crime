@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from config import *
 from offense_codes import (
+    MECHANISM_SUBCATEGORIES, PARENT_CATEGORIES, SIBLING_GROUPS,
     classify_code, classify_mechanism, is_violent_ucr, mechanism_sets,
 )
 
@@ -25,7 +26,7 @@ crime["violent"] = (crime["category"] == "violent").astype(int)
 crime["violent_ucr"] = crime["Crm Cd"].map(is_violent_ucr).astype(int)
 crime["property"] = (crime["category"] == "property").astype(int)
 crime["mechanism"] = crime["Crm Cd"].map(classify_mechanism)
-for sub in ["interpersonal", "robbery", "theft", "burglary", "vehicle_theft"]:
+for sub in MECHANISM_SUBCATEGORIES:
     crime[sub] = (crime["mechanism"] == sub).astype(int)
 
 # Legacy keyword proxies (for audit only; not mutually exclusive)
@@ -64,47 +65,54 @@ code_table = (
 code_table["in_violent_ucr"] = code_table["Crm Cd"].map(is_violent_ucr)
 code_table.to_csv(RESULTS / "crime_code_counts.csv", index=False)
 
-# Mechanism subcategory table with overlap checks
+# Mechanism subcategory table with disjointness checks (v2 taxonomy)
 sets = mechanism_sets()
-all_codes = crime["Crm Cd"].dropna().astype(int)
-n_all = len(crime)
 mech_rows = []
 for name, codes in sets.items():
-  code_info = (
-      crime[crime["Crm Cd"].isin(codes)]
-      .groupby(["Crm Cd", "Crm Cd Desc"], dropna=False)
-      .size().reset_index(name="n")
-      .sort_values("n", ascending=False)
-  )
-  desc = "; ".join(
-      f"{int(r['Crm Cd'])} ({r['Crm Cd Desc']})" for _, r in code_info.head(8).iterrows()
-  )
-  if len(code_info) > 8:
-      desc += f"; ... ({len(code_info)} codes total)"
-  overlap_with = []
-  siblings = {
-      "violent": ["interpersonal", "robbery"],
-      "violent_ucr": ["interpersonal", "robbery"],
-      "interpersonal": ["robbery"],
-      "robbery": ["interpersonal"],
-      "property": ["theft", "burglary", "vehicle_theft"],
-      "theft": ["burglary", "vehicle_theft"],
-      "burglary": ["theft", "vehicle_theft"],
-      "vehicle_theft": ["theft", "burglary"],
-  }
-  for other in siblings.get(name, []):
-      ocodes = sets[other]
-      if codes & ocodes:
-          overlap_with.append(other)
-  mech_rows.append({
-      "category": name,
-      "n_codes": len(codes),
-      "incident_count": int(crime["Crm Cd"].isin(codes).sum()),
-      "share_of_all": float(crime["Crm Cd"].isin(codes).mean()),
-      "sample_codes_desc": desc,
-      "overlaps_with": ",".join(overlap_with) if overlap_with else "",
-  })
-pd.DataFrame(mech_rows).to_csv(RESULTS / "crime_mechanism_classification.csv", index=False)
+    in_cat = crime["Crm Cd"].isin(codes)
+    code_info = (
+        crime[in_cat]
+        .groupby(["Crm Cd", "Crm Cd Desc"], dropna=False)
+        .size().reset_index(name="n")
+        .sort_values("n", ascending=False)
+    )
+    desc = "; ".join(
+        f"{int(r['Crm Cd'])} ({r['Crm Cd Desc']})"
+        for _, r in code_info.head(8).iterrows()
+    )
+    if len(code_info) > 8:
+        desc += f"; ... ({len(code_info)} codes total)"
+    if name in PARENT_CATEGORIES:
+        overlap_note = "parent aggregate (nests subcategories)"
+    else:
+        overlap_with = [
+            other for other in SIBLING_GROUPS.get(name, [])
+            if codes & sets[other]
+        ]
+        overlap_note = ",".join(overlap_with) if overlap_with else "none"
+    mech_rows.append({
+        "category": name,
+        "n_codes": len(codes),
+        "incident_count": int(in_cat.sum()),
+        "share_of_all": float(in_cat.mean()),
+        "sample_codes_desc": desc,
+        "overlaps_with_siblings": overlap_note,
+    })
+mech = pd.DataFrame(mech_rows)
+mech.to_csv(RESULTS / "crime_mechanism_classification_v2.csv", index=False)
+
+# Property subcategories must partition the property parent exactly.
+prop_parts = ["theft", "structure_burglary", "vehicle_burglary",
+              "motor_vehicle_theft", "vandalism", "arson"]
+part_sum = int(crime[prop_parts].sum().sum())
+prop_total = int(crime["property"].sum())
+print(f"property partition check: parts={part_sum:,} parent={prop_total:,} "
+      f"{'OK' if part_sum == prop_total else 'MISMATCH'}")
+sib_overlaps = mech.loc[
+    ~mech.category.isin(PARENT_CATEGORIES)
+    & (mech.overlaps_with_siblings != "none"), "category"
+].tolist()
+print(f"sibling overlaps: {sib_overlaps if sib_overlaps else 'none'}")
 
 print("classification shares:")
 print(audit.to_string(index=False))
@@ -112,17 +120,9 @@ print(f"code∩ overlap violent&property: "
       f"{((crime.violent==1)&(crime.property==1)).sum()} (should be 0)")
 print(f"keyword overlap both: {int((crime.kw_violent & crime.kw_property).sum()):,}")
 
-agg_cols = {
-    "total": ("date", "size"),
-    "violent": ("violent", "sum"),
-    "violent_ucr": ("violent_ucr", "sum"),
-    "property": ("property", "sum"),
-    "interpersonal": ("interpersonal", "sum"),
-    "robbery": ("robbery", "sum"),
-    "theft": ("theft", "sum"),
-    "burglary": ("burglary", "sum"),
-    "vehicle_theft": ("vehicle_theft", "sum"),
-}
+agg_cols = {"total": ("date", "size")}
+for col in ["violent", "violent_ucr", "property"] + MECHANISM_SUBCATEGORIES:
+    agg_cols[col] = (col, "sum")
 daily_crime = crime.groupby("date").agg(**agg_cols).reset_index()
 calendar = pd.DataFrame({"date": pd.date_range(CRIME_START, CRIME_END)})
 daily_crime = calendar.merge(daily_crime, how="left").fillna(0)
@@ -137,6 +137,10 @@ w["month"] = w["date"].dt.month
 
 normal_mask = w["date"].between(NORMAL_START, NORMAL_END)
 normal = w[normal_mask].groupby("month")["tmean"].mean().rename("normal")
+# Climatological upper-tail threshold from the 1991-2020 normal period, so the
+# percentile cutoff does not depend on the 2010-2023 crime sample.
+tmax_p95_clim = w.loc[normal_mask, "TMAX"].quantile(0.95)
+n_clim_days = int(w.loc[normal_mask, "TMAX"].notna().sum())
 w = w.merge(normal, on="month")
 w["temp_anom"] = w["tmean"] - w["normal"]
 
@@ -150,6 +154,30 @@ daily["hot32"] = (daily["TMAX"] >= 32).astype(int)
 daily["hot35"] = (daily["TMAX"] >= 35).astype(int)
 tmax_p95 = daily["TMAX"].quantile(0.95)
 daily["hot_p95"] = (daily["TMAX"] >= tmax_p95).astype(int)
+daily["hot_p95_clim"] = (daily["TMAX"] >= tmax_p95_clim).astype(int)
+pd.DataFrame([{
+    "threshold": "hot35",
+    "cutoff_c": 35.0,
+    "basis": "absolute",
+    "n_crime_period_days": int(daily["hot35"].sum()),
+    "share_crime_period": float(daily["hot35"].mean()),
+}, {
+    "threshold": "hot_p95",
+    "cutoff_c": float(tmax_p95),
+    "basis": "P95 of TMAX in 2010-2023 crime sample",
+    "n_crime_period_days": int(daily["hot_p95"].sum()),
+    "share_crime_period": float(daily["hot_p95"].mean()),
+}, {
+    "threshold": "hot_p95_clim",
+    "cutoff_c": float(tmax_p95_clim),
+    "basis": f"P95 of TMAX in {NORMAL_START[:4]}-{NORMAL_END[:4]} normals "
+             f"({n_clim_days:,} station-days)",
+    "n_crime_period_days": int(daily["hot_p95_clim"].sum()),
+    "share_crime_period": float(daily["hot_p95_clim"].mean()),
+}]).to_csv(RESULTS / "heat_threshold_definitions.csv", index=False)
+print(f"heat thresholds: hot35=35.0C ({int(daily.hot35.sum())}d)  "
+      f"hot_p95={tmax_p95:.1f}C ({int(daily.hot_p95.sum())}d)  "
+      f"hot_p95_clim={tmax_p95_clim:.1f}C ({int(daily.hot_p95_clim.sum())}d)")
 daily["tmax_bin"] = pd.cut(
     daily["TMAX"], [-np.inf, 15, 20, 25, 30, 35, np.inf],
     labels=["lt15", "15_20", "20_25", "25_30", "30_35", "ge35"], right=False)
