@@ -1,9 +1,20 @@
 #!/bin/bash
-# Refresh README results links before every push.
+# Refresh the README results links before every push.
+#
+# Git computes the refs to push before this hook runs, so a commit created here
+# would not be included in the current push. We therefore amend the README into
+# the commit being pushed rather than adding a new one.
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
+
+# Don't rewrite history that is already published, and don't touch a commit that
+# carries unrelated staged or unstaged work.
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "pre-push: working tree not clean, skipping README refresh" >&2
+  exit 0
+fi
 
 python3 scripts/update_readme_results.py
 
@@ -11,5 +22,15 @@ if git diff --quiet -- README.md; then
   exit 0
 fi
 
+upstream="$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)"
+if [ -n "$upstream" ] && git merge-base --is-ancestor HEAD "$upstream" 2>/dev/null; then
+  echo "pre-push: HEAD is already published, committing README separately" >&2
+  git add README.md
+  git commit -m "Update README results links [auto]"
+  echo "pre-push: run 'git push' again to publish the README update" >&2
+  exit 1
+fi
+
 git add README.md
-git commit -m "Update README results links [auto]"
+git commit --amend --no-edit
+echo "pre-push: amended refreshed README links into $(git rev-parse --short HEAD)" >&2
