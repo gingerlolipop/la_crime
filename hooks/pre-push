@@ -1,0 +1,15 @@
+#!/bin/bash
+# Refresh README results links before every push.
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+python3 scripts/update_readme_results.py
+
+if git diff --quiet -- README.md; then
+  exit 0
+fi
+
+git add README.md
+git commit -m "Update README results links [auto]"
