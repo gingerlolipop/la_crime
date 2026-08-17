@@ -3,7 +3,9 @@
 import numpy as np
 import pandas as pd
 from config import *
-from offense_codes import VIOLENT, VIOLENT_UCR, PROPERTY, classify_code, is_violent_ucr
+from offense_codes import (
+    classify_code, classify_mechanism, is_violent_ucr, mechanism_sets,
+)
 
 OUT.mkdir(parents=True, exist_ok=True)
 RESULTS.mkdir(parents=True, exist_ok=True)
@@ -22,6 +24,9 @@ crime["category"] = crime["Crm Cd"].map(classify_code)
 crime["violent"] = (crime["category"] == "violent").astype(int)
 crime["violent_ucr"] = crime["Crm Cd"].map(is_violent_ucr).astype(int)
 crime["property"] = (crime["category"] == "property").astype(int)
+crime["mechanism"] = crime["Crm Cd"].map(classify_mechanism)
+for sub in ["interpersonal", "robbery", "theft", "burglary", "vehicle_theft"]:
+    crime[sub] = (crime["mechanism"] == sub).astype(int)
 
 # Legacy keyword proxies (for audit only; not mutually exclusive)
 desc = crime["Crm Cd Desc"].fillna("").str.upper()
@@ -59,18 +64,66 @@ code_table = (
 code_table["in_violent_ucr"] = code_table["Crm Cd"].map(is_violent_ucr)
 code_table.to_csv(RESULTS / "crime_code_counts.csv", index=False)
 
+# Mechanism subcategory table with overlap checks
+sets = mechanism_sets()
+all_codes = crime["Crm Cd"].dropna().astype(int)
+n_all = len(crime)
+mech_rows = []
+for name, codes in sets.items():
+  code_info = (
+      crime[crime["Crm Cd"].isin(codes)]
+      .groupby(["Crm Cd", "Crm Cd Desc"], dropna=False)
+      .size().reset_index(name="n")
+      .sort_values("n", ascending=False)
+  )
+  desc = "; ".join(
+      f"{int(r['Crm Cd'])} ({r['Crm Cd Desc']})" for _, r in code_info.head(8).iterrows()
+  )
+  if len(code_info) > 8:
+      desc += f"; ... ({len(code_info)} codes total)"
+  overlap_with = []
+  siblings = {
+      "violent": ["interpersonal", "robbery"],
+      "violent_ucr": ["interpersonal", "robbery"],
+      "interpersonal": ["robbery"],
+      "robbery": ["interpersonal"],
+      "property": ["theft", "burglary", "vehicle_theft"],
+      "theft": ["burglary", "vehicle_theft"],
+      "burglary": ["theft", "vehicle_theft"],
+      "vehicle_theft": ["theft", "burglary"],
+  }
+  for other in siblings.get(name, []):
+      ocodes = sets[other]
+      if codes & ocodes:
+          overlap_with.append(other)
+  mech_rows.append({
+      "category": name,
+      "n_codes": len(codes),
+      "incident_count": int(crime["Crm Cd"].isin(codes).sum()),
+      "share_of_all": float(crime["Crm Cd"].isin(codes).mean()),
+      "sample_codes_desc": desc,
+      "overlaps_with": ",".join(overlap_with) if overlap_with else "",
+  })
+pd.DataFrame(mech_rows).to_csv(RESULTS / "crime_mechanism_classification.csv", index=False)
+
 print("classification shares:")
 print(audit.to_string(index=False))
 print(f"code∩ overlap violent&property: "
       f"{((crime.violent==1)&(crime.property==1)).sum()} (should be 0)")
 print(f"keyword overlap both: {int((crime.kw_violent & crime.kw_property).sum()):,}")
 
-daily_crime = crime.groupby("date").agg(
-    total=("date", "size"),
-    violent=("violent", "sum"),
-    violent_ucr=("violent_ucr", "sum"),
-    property=("property", "sum"),
-).reset_index()
+agg_cols = {
+    "total": ("date", "size"),
+    "violent": ("violent", "sum"),
+    "violent_ucr": ("violent_ucr", "sum"),
+    "property": ("property", "sum"),
+    "interpersonal": ("interpersonal", "sum"),
+    "robbery": ("robbery", "sum"),
+    "theft": ("theft", "sum"),
+    "burglary": ("burglary", "sum"),
+    "vehicle_theft": ("vehicle_theft", "sum"),
+}
+daily_crime = crime.groupby("date").agg(**agg_cols).reset_index()
 calendar = pd.DataFrame({"date": pd.date_range(CRIME_START, CRIME_END)})
 daily_crime = calendar.merge(daily_crime, how="left").fillna(0)
 
@@ -95,6 +148,8 @@ daily["year"] = daily["date"].dt.year
 daily["hot30"] = (daily["TMAX"] >= 30).astype(int)
 daily["hot32"] = (daily["TMAX"] >= 32).astype(int)
 daily["hot35"] = (daily["TMAX"] >= 35).astype(int)
+tmax_p95 = daily["TMAX"].quantile(0.95)
+daily["hot_p95"] = (daily["TMAX"] >= tmax_p95).astype(int)
 daily["tmax_bin"] = pd.cut(
     daily["TMAX"], [-np.inf, 15, 20, 25, 30, 35, np.inf],
     labels=["lt15", "15_20", "20_25", "25_30", "30_35", "ge35"], right=False)

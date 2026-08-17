@@ -23,3 +23,4 @@ python scripts/02_build.py
 python scripts/05_diagnostics.py
 python scripts/04_diagnose_dates.py
 python scripts/03_analyze.py
+python scripts/09_mechanism_analysis.py

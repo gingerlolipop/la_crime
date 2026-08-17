@@ -40,7 +40,8 @@ sbatch slurm/run_spatial.sbatch
 | `06_spatial_weather_download.py` | Multi-station NOAA weather |
 | `07_build_area_panel.py` | LAPD area × day panel |
 | `08_spatial_analysis.py` | Area + date FE spatial models |
-| `offense_codes.py` | Violent / property Crm Cd crosswalk |
+| `09_mechanism_analysis.py` | Crime-type temperature response curves |
+| `offense_codes.py` | Violent / property / mechanism Crm Cd crosswalk |
 | `config.py` | Paths and sample windows |
 
 ## Notes
